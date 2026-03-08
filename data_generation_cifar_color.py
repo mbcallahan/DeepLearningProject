@@ -4,6 +4,7 @@ from PIL import Image
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import datasets, transforms
+import matplotlib.pyplot as plt
 
 class FashionMNIST_RGB(Dataset):
     """Source: (3x28x28 tensor, label)"""
@@ -77,66 +78,69 @@ class FashionMNISTM_ColorDigit(Dataset):
         out_pil = Image.fromarray((out * 255).astype(np.uint8), mode="RGB")
         x = self.to_tensor(out_pil)  # 3x28x28
         return x, y
+if __name__=="__main__":
+    
 
-"""Fashion Dataset"""  ###### comment if you want to use Digits
-# Load base datasets
-fmnist_train_pil = datasets.FashionMNIST("./data", train=True, download=True, transform=None)
-fmnist_test_pil  = datasets.FashionMNIST("./data", train=False, download=True, transform=None)
-# Labels/names come from the data file:
-CLASS_NAMES = fmnist_train_pil.classes
-print("CLASS_NAMES:", CLASS_NAMES)
-# Background textures
-cifar_train_pil = datasets.CIFAR10("./data", train=True, download=True, transform=None)
- # Source and Target datasets
-src_train = FashionMNIST_RGB(fmnist_train_pil)
-src_test  = FashionMNIST_RGB(fmnist_test_pil)
-tgt_train = FashionMNISTM_ColorDigit(fmnist_train_pil, cifar_train_pil, seed=0, mask_power=1.4)
-tgt_test  = FashionMNISTM_ColorDigit(fmnist_test_pil,  cifar_train_pil, seed=1, mask_power=1.4)
-print("Source train/test:", len(src_train), len(src_test))
-print("Target train/test:", len(tgt_train), len(tgt_test))
+    """Fashion Dataset"""  ###### comment if you want to use Digits
+    # Load base datasets
+    fmnist_train_pil = datasets.FashionMNIST("./data", train=True, download=False, transform=None)
+    fmnist_test_pil  = datasets.FashionMNIST("./data", train=False, download=False, transform=None)
+    # Labels/names come from the data file:
+    CLASS_NAMES = fmnist_train_pil.classes
+    print("CLASS_NAMES:", CLASS_NAMES)
+    # Background textures
+    cifar_train_pil = datasets.CIFAR10("./data", train=True, download=False, transform=None)
+     # Source and Target datasets
+    src_train = FashionMNIST_RGB(fmnist_train_pil)
+    src_test  = FashionMNIST_RGB(fmnist_test_pil)
+    tgt_train = FashionMNISTM_ColorDigit(fmnist_train_pil, cifar_train_pil, seed=0, mask_power=1.4)
+    tgt_test  = FashionMNISTM_ColorDigit(fmnist_test_pil,  cifar_train_pil, seed=1, mask_power=1.4)
+    print("Source train/test:", len(src_train), len(src_test))
+    print("Target train/test:", len(tgt_train), len(tgt_test))
 
 
-"""Digit Dataset"""   ######comment out if you want to use Digits
-# mnist_train_pil = datasets.MNIST("./data", train=True, download=True, transform=None)
-# mnist_test_pil  = datasets.MNIST("./data", train=False, download=True, transform=None)
-# CLASS_NAMES = [str(i) for i in range(10)]  # digits 0-9
-# cifar_train_pil = datasets.CIFAR10("./data", train=True, download=True, transform=None)
-# src_train = FashionMNIST_RGB(mnist_train_pil)
-# src_test  = FashionMNIST_RGB(mnist_test_pil)
-# tgt_train = FashionMNISTM_ColorDigit(mnist_train_pil, cifar_train_pil, seed=0, mask_power=1.4)
-# tgt_test  = FashionMNISTM_ColorDigit(mnist_test_pil,  cifar_train_pil, seed=1, mask_power=1.4)
+    """Digit Dataset"""   ######comment out if you want to use Digits
+    # mnist_train_pil = datasets.MNIST("./data", train=True, download=True, transform=None)
+    # mnist_test_pil  = datasets.MNIST("./data", train=False, download=True, transform=None)
+    # CLASS_NAMES = [str(i) for i in range(10)]  # digits 0-9
+    # cifar_train_pil = datasets.CIFAR10("./data", train=True, download=True, transform=None)
+    # src_train = FashionMNIST_RGB(mnist_train_pil)
+    # src_test  = FashionMNIST_RGB(mnist_test_pil)
+    # tgt_train = FashionMNISTM_ColorDigit(mnist_train_pil, cifar_train_pil, seed=0, mask_power=1.4)
+    # tgt_test  = FashionMNISTM_ColorDigit(mnist_test_pil,  cifar_train_pil, seed=1, mask_power=1.4)
 
-batch_size = 64
-half = batch_size // 2
+    batch_size = 64
+    half = batch_size // 2
 
-src_loader = DataLoader(src_train, batch_size=half, shuffle=True, drop_last=True, num_workers=2, pin_memory=True)
-tgt_loader = DataLoader(tgt_train, batch_size=half, shuffle=True, drop_last=True, num_workers=2, pin_memory=True)
+    src_loader = DataLoader(src_train, batch_size=half, shuffle=True, drop_last=True, num_workers=2, pin_memory=True)
+    tgt_loader = DataLoader(tgt_train, batch_size=half, shuffle=True, drop_last=True, num_workers=2, pin_memory=True)
 
-src_test_loader = DataLoader(src_test, batch_size=256, shuffle=False, num_workers=2)
-tgt_test_loader = DataLoader(tgt_test, batch_size=256, shuffle=False, num_workers=2)
+    src_test_loader = DataLoader(src_test, batch_size=256, shuffle=False, num_workers=2)
+    tgt_test_loader = DataLoader(tgt_test, batch_size=256, shuffle=False, num_workers=2)
 
-import matplotlib.pyplot as plt
+    
+    def show_pair(i=0):
+        xs, ys = src_train[i]
+        xt, yt = tgt_train[i]
 
-def show_pair(i=0):
-    xs, ys = src_train[i]
-    xt, yt = tgt_train[i]
+        xs_img = xs.permute(1, 2, 0).numpy()
+        xt_img = xt.permute(1, 2, 0).numpy()
 
-    xs_img = xs.permute(1, 2, 0).numpy()
-    xt_img = xt.permute(1, 2, 0).numpy()
+        fig = plt.figure(figsize=(6, 3))
+        ax1 = fig.add_subplot(1, 2, 1)
+        ax1.imshow(xs_img)
+        ax1.set_title(f"Source: {CLASS_NAMES[int(ys)]}")
+        ax1.axis("off")
 
-    fig = plt.figure(figsize=(6, 3))
-    ax1 = fig.add_subplot(1, 2, 1)
-    ax1.imshow(xs_img)
-    ax1.set_title(f"Source: {CLASS_NAMES[int(ys)]}")
-    ax1.axis("off")
+        ax2 = fig.add_subplot(1, 2, 2)
+        ax2.imshow(xt_img)
+        ax2.set_title(f"Target: {CLASS_NAMES[int(yt)]}")
+        ax2.axis("off")
 
-    ax2 = fig.add_subplot(1, 2, 2)
-    ax2.imshow(xt_img)
-    ax2.set_title(f"Target: {CLASS_NAMES[int(yt)]}")
-    ax2.axis("off")
+        plt.show()
 
-    plt.show()
+    show_pair(0)
+    show_pair(1)
+    show_pair(2)
 
-show_pair(0)
-show_pair(1)
-show_pair(2)
+

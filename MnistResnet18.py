@@ -25,7 +25,7 @@ class BasicBlock(nn.Module):
 
         out = self.conv1(x)
         out = self.bn1(out)
-        out = F.gelu(out)
+        out = F.celu(out)
 
         out = self.conv2(out)
         out = self.bn2(out)
@@ -34,12 +34,12 @@ class BasicBlock(nn.Module):
             identity = self.downsample(x)
 
         out += identity
-        out = F.gelu(out)
+        out = F.celu(out)
         return out
 
 class SmallStemResNet18(nn.Module):
     """
-    ResNet-18 with a 3x3 stride-1 stem and no maxpool, suitable for 28x28 inputs. Skeleton form copilot. I replaced the relu with smoothed version gelu hoping this will speed up training. 
+    ResNet-18 with a 3x3 stride-1 stem and no maxpool, suitable for 28x28 inputs. Skeleton form copilot. I replaced the relu with smoothed version celu hoping this will speed up training. 
     """
     def __init__(self, num_classes=10, in_channels=1, norm_layer=None):
         super().__init__()
@@ -92,7 +92,7 @@ class SmallStemResNet18(nn.Module):
     def forward(self, x):
         x = self.conv1(x)   # [B, 64, 28, 28]
         x = self.bn1(x)
-        x = F.gelu(x)
+        x = F.celu(x)
         # no maxpool
 
         x = self.layer1(x)  # -> [B, 64, 28, 28]
