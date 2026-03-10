@@ -24,11 +24,3 @@ class GradRevLayer(nn.Module):
 
     def forward(self, x):
         return GradReversalFunc.apply(x, self.hp_lambda)
-    
-
-layer = GradRevLayer(hp_lambda = 0.5)
-x = torch.tensor([1.0,2.0,3.0], requires_grad=True)
-y = layer(x)
-loss = y.sum()
-loss.backward()
-print(x.grad)
