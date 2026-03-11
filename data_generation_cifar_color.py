@@ -78,6 +78,63 @@ class FashionMNISTM_ColorDigit(Dataset):
         out_pil = Image.fromarray((out * 255).astype(np.uint8), mode="RGB")
         x = self.to_tensor(out_pil)  # 3x28x28
         return x, y
+class FashionMNISTM_EvenBackground(Dataset):
+    """
+    Target: generator:
+      - Background is even RGB
+      - Fashion item ink is colorized (random RGB)
+      - blended via soft mask
+    Returns: (3x28x28 tensor, same label)
+    """
+    def __init__(self, base_fmnist_pil, seed=0, mask_power=1.4):
+        self.base = base_fmnist_pil
+    
+        self.rng = random.Random(seed)
+        self.mask_power = float(mask_power)
+        self.to_tensor = transforms.ToTensor()
+
+    def __len__(self):
+        return len(self.base)
+
+    def _random_bg_patch(self):
+        r = self.rng.randrange(255)
+        g = self.rng.randrange(255)
+        b = self.rng.randrange(255)
+        
+        img =Image.new('RGB',(28,28),(r,g,b))   # even color background
+
+        return img
+
+    def _random_digit_color(self):
+        # avoid very dark digit colors
+        return np.array([
+            self.rng.randint(80, 255),
+            self.rng.randint(80, 255),
+            self.rng.randint(80, 255),
+        ], dtype=np.float32) / 255.0
+
+    def __getitem__(self, i):
+        digit, y = self.base[i]  # PIL L
+        digit = digit.convert("L").resize((28, 28), Image.BILINEAR)
+        bg = self._random_bg_patch()  # PIL RGB 28x28
+
+        digit_np = np.array(digit).astype(np.float32) / 255.0      # HxW
+        mask = np.clip(digit_np, 0.0, 1.0) ** self.mask_power      # HxW
+        mask = mask[..., None]                                     # HxWx1
+
+        bg_np = np.array(bg).astype(np.float32) / 255.0            # HxWx3
+        color = self._random_digit_color()[None, None, :]          # 1x1x3
+
+        # colored ink intensity follows digit brightness
+        digit_rgb = color * digit_np[..., None]                    # HxWx3
+
+        out = bg_np * (1.0 - mask) + digit_rgb * mask              # HxWx3
+        out = np.clip(out, 0.0, 1.0)
+
+        out_pil = Image.fromarray((out * 255).astype(np.uint8), mode="RGB")
+        x = self.to_tensor(out_pil)  # 3x28x28
+        return x, y
+
 if __name__=="__main__":
     
 
@@ -93,8 +150,8 @@ if __name__=="__main__":
      # Source and Target datasets
     src_train = FashionMNIST_RGB(fmnist_train_pil)
     src_test  = FashionMNIST_RGB(fmnist_test_pil)
-    tgt_train = FashionMNISTM_ColorDigit(fmnist_train_pil, cifar_train_pil, seed=0, mask_power=1.4)
-    tgt_test  = FashionMNISTM_ColorDigit(fmnist_test_pil,  cifar_train_pil, seed=1, mask_power=1.4)
+    tgt_train = FashionMNISTM_EvenBackground(fmnist_train_pil, seed=0, mask_power=1.4)
+    tgt_test  = FashionMNISTM_EvenBackground(fmnist_test_pil, seed=1, mask_power=1.4)
     print("Source train/test:", len(src_train), len(src_test))
     print("Target train/test:", len(tgt_train), len(tgt_test))
 
