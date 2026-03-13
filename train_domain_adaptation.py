@@ -10,7 +10,7 @@ import torch.optim.lr_scheduler as lr_scheduler
 
 import wandb
 
-from MnistResnet18 import *
+from MnistResnet18RevGrad import *
 from data_generation_cifar_color import *
 
 batch_size = 256#64
@@ -53,7 +53,7 @@ if __name__=="__main__":
     config = {'epochs': 100,'lr': 3e-2, "weight":0.0,'batch':batch_size }#, 'momentum': 0.8
     
     iter = 0
-    with wandb.init(config = config,project="DomainAdaptation", id="only-source-evenbackground3") as run:
+    with wandb.init(config = config,project="DomainAdaptation", id="grad-reversal-evenbackground") as run:
 
 
         wandb.define_metric("train/iter_loss", step_metric="global_step")
@@ -65,25 +65,27 @@ if __name__=="__main__":
         optimizer = torch.optim.AdamW(model.parameters(), lr=run.config['lr'],weight_decay=run.config['weight'])#, weight_decay=0.0, momentum=run.config['momentum'])
         scheduler = lr_scheduler.StepLR(optimizer, step_size=run.config['epochs']/4, gamma=0.5)
         criterion = torch.nn.CrossEntropyLoss()
+        domain_criterion=torch.nn.BCEWithLogitsLoss()
         for i in range(run.config['epochs']):
             model.train()
             print("Epoch {}".format(i))
-            for j,input in enumerate(src_loader,0):
+            for (x,y),(z,_) in zip(src_loader,tgt_loader):
                 iter+=1
 
 
 
-                x = input[0].to(device)
-                y = input[1].to(device)
-
+                x = x.to(device)
+                y = y.to(device)
+                z= z.to(device)
                 if iter == 0:
                     image = wandb.Image(x[0,:,:,:])
                     run.log({"example": image})
 
-                out = model(x)
-                loss = criterion(out,y)
-                model.conv1.weight.requires_grad = False
-
+                out,domains1 = model(x)
+                _, domains2=model(z)
+                loss_label = criterion(out,y)
+                domain_loss= domain_criterion(torch.cat([domains1,domains2]).squeeze(), torch.cat([torch.ones(x.shape[0]), torch.zeros(z.shape[0])]).to(device))
+                loss=loss_label+domain_loss
                 model.zero_grad()
                 loss.backward()
 
@@ -92,7 +94,7 @@ if __name__=="__main__":
                 _, predicted = torch.max(out.data, 1)
                 correct = (predicted == y).float().mean().item()
 
-                run.log({"train/train_loss": loss.item(), "train/train_accuracy": correct}, step = iter)
+                run.log({"train/train_loss": loss_label.item(), "train/train_accuracy": correct}, step = iter)
 
 
 
@@ -104,7 +106,7 @@ if __name__=="__main__":
                  x = input[0].to(device)
                  y = input[1].to(device)
 
-                 out = model(x)
+                 out,_ = model(x)
                  loss = criterion(out,y)
 
                  _, predicted = torch.max(out.data, 1)
@@ -119,7 +121,7 @@ if __name__=="__main__":
                  x = input[0].to(device)
                  y = input[1].to(device)
 
-                 out = model(x)
+                 out,_ = model(x)
 
                  _, predicted = torch.max(out.data, 1)
                  correct = (predicted == y).sum().item()
