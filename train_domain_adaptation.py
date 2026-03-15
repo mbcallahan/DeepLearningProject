@@ -53,7 +53,7 @@ if __name__=="__main__":
         lambda_scheduler=lambda_scheduler
         )
 
-    wandb.login(key='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', relogin=True)
+    wandb.login(key=None, relogin=True)
 
     if torch.cuda.is_available():
         device = torch.device('cuda')
