@@ -18,13 +18,13 @@ if __name__=="__main__":
     
     """Fashion Dataset"""  ###### comment if you want to use Digits
     # Load base datasets
-    fmnist_train_pil = datasets.FashionMNIST("./data", train=True, download=False, transform=torchvision.transforms.Compose([torchvision.transforms.RandomHorizontalFlip(p=0.5),torchvision.transforms.RandomAffine(5, (0.05,0.05))]))
-    fmnist_test_pil  = datasets.FashionMNIST("./data", train=False, download=False, transform=None)
+    fmnist_train_pil = datasets.FashionMNIST("./data", train=True, download=True, transform=torchvision.transforms.Compose([torchvision.transforms.RandomHorizontalFlip(p=0.5),torchvision.transforms.RandomAffine(5, (0.05,0.05))]))
+    fmnist_test_pil  = datasets.FashionMNIST("./data", train=False, download=True, transform=None)
     # Labels/names come from the data file:
     CLASS_NAMES = fmnist_train_pil.classes
     print("CLASS_NAMES:", CLASS_NAMES)
     # Background textures
-    cifar_train_pil = datasets.CIFAR10("./data", train=True, download=False, transform=None)
+    cifar_train_pil = datasets.CIFAR10("./data", train=True, download=True, transform=None)
      # Source and Target datasets
     src_train = FashionMNIST_RGB(fmnist_train_pil)
     src_test  = FashionMNIST_RGB(fmnist_test_pil)
@@ -41,16 +41,28 @@ if __name__=="__main__":
     src_test_loader = DataLoader(src_test, batch_size=256, shuffle=False, num_workers=2)
     tgt_test_loader = DataLoader(tgt_test, batch_size=256, shuffle=False, num_workers=2)
 
-    model=SmallStemResNet18(len(CLASS_NAMES),in_channels=3)
+    lambda_hp = 0.5
 
-    wandb.login()
+    lambda_scheduler = None
+    # gamma = 10
+    # lambda_scheduler = lambda p: 2 / (1 + np.exp(-gamma * p)) - 1
+    model=SmallStemResNet18(
+        len(CLASS_NAMES),
+        in_channels=3,
+        lambda_hp=lambda_hp, 
+        lambda_scheduler=lambda_scheduler
+        )
 
+    wandb.login(key=None, relogin=True)
 
-    device = torch.device('cuda')
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
 
     model.to(device)
     
-    config = {'epochs': 100,'lr': 3e-2, "weight":0.0,'batch':batch_size }#, 'momentum': 0.8
+    config = {'epochs': 100,'lr': 3e-2, "weight":0.0,'batch':batch_size, 'lambda':lambda_hp}#, 'momentum': 0.8
     
     iter = 0
     with wandb.init(config = config,project="DomainAdaptation", id="grad-reversal-evenbackground") as run:

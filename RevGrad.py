@@ -18,9 +18,15 @@ class GradReversalFunc(Function):
         return grad_x, grad_lam
     
 class GradRevLayer(nn.Module):
-    def __init__(self, hp_lambda = 1.0):
+    def __init__(self, hp_lambda = 1.0, lambda_scheduler = None):
         super(GradRevLayer, self).__init__()
         self.hp_lambda = hp_lambda
+        self.lambda_scheduler = lambda_scheduler
+        self.epoch = 0
 
     def forward(self, x):
+        if self.lambda_scheduler is not None:
+            self.hp_lambda = self.lambda_scheduler(self.epoch)
+
+        self.epoch += 1
         return GradReversalFunc.apply(x, self.hp_lambda)

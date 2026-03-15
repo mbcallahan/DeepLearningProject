@@ -42,7 +42,7 @@ class SmallStemResNet18(nn.Module):
     """
     ResNet-18 with a 3x3 stride-1 stem and no maxpool, suitable for 28x28 inputs. Skeleton form copilot. I replaced the relu with smoothed version celu hoping this will speed up training. 
     """
-    def __init__(self, num_classes=10, in_channels=1, norm_layer=None, lambda_hp=1.0):
+    def __init__(self, num_classes=10, in_channels=1, norm_layer=None, lambda_hp=1.0, lambda_scheduler=None):
         super().__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
@@ -74,7 +74,7 @@ class SmallStemResNet18(nn.Module):
         
         #define domain classifier as in paper for non-mnist problems
         self.domainfc= nn.Sequential(
-            GradRevLayer(lambda_hp),
+            GradRevLayer(lambda_hp, lambda_scheduler),
             nn.Linear(512*BasicBlock.expansion, 1024),
             nn.CELU(),
             nn.Linear(1024,1024),
