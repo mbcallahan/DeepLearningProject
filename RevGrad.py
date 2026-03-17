@@ -22,11 +22,13 @@ class GradRevLayer(nn.Module):
         super(GradRevLayer, self).__init__()
         self.hp_lambda = hp_lambda
         self.lambda_scheduler = lambda_scheduler
-        self.epoch = 0
+        self.epoch = 1
 
     def forward(self, x):
         if self.lambda_scheduler is not None:
             self.hp_lambda = self.lambda_scheduler(self.epoch)
 
-        self.epoch += 1
         return GradReversalFunc.apply(x, self.hp_lambda)
+    
+    def step_scheduler(self):
+        self.epoch += 1
