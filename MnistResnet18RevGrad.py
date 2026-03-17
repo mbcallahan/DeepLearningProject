@@ -75,11 +75,11 @@ class SmallStemResNet18(nn.Module):
         #define domain classifier as in paper for non-mnist problems
         self.domainfc= nn.Sequential(
             GradRevLayer(lambda_hp, lambda_scheduler),
-            nn.Linear(512*BasicBlock.expansion, 1024),
+            nn.Linear(512*BasicBlock.expansion,512),
+            #nn.CELU(),
+            #nn.Linear(1024,1024),
             nn.CELU(),
-            nn.Linear(1024,1024),
-            nn.CELU(),
-            nn.Linear(1024,1)#binary classes either 0 or 1
+            nn.Linear(512,1)#binary classes either 0 or 1
             )
 
     def _make_layer(self, planes, blocks, stride=1, norm_layer=None):

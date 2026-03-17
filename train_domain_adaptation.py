@@ -53,7 +53,7 @@ if __name__=="__main__":
         lambda_scheduler=lambda_scheduler
         )
 
-    wandb.login(key=None, relogin=True)
+    wandb.login()
 
     if torch.cuda.is_available():
         device = torch.device('cuda')
@@ -62,10 +62,10 @@ if __name__=="__main__":
 
     model.to(device)
     
-    config = {'epochs': 100,'lr': 3e-2, "weight":0.0,'batch':batch_size, 'lambda':lambda_hp}#, 'momentum': 0.8
+    config = {'epochs': 150,'lr': 3e-3, "weight":0.0,'batch':batch_size, 'lambda':lambda_hp}#, 'momentum': 0.8
     
     iter = 0
-    with wandb.init(config = config,project="DomainAdaptation", id="grad-reversal-evenbackground") as run:
+    with wandb.init(config = config,project="DomainAdaptation", id="grad-reversal-evenbackground3") as run:
 
 
         wandb.define_metric("train/iter_loss", step_metric="global_step")
@@ -75,7 +75,7 @@ if __name__=="__main__":
         wandb.define_metric("val/target_accuracy",step_metric="epoch")
 
         optimizer = torch.optim.AdamW(model.parameters(), lr=run.config['lr'],weight_decay=run.config['weight'])#, weight_decay=0.0, momentum=run.config['momentum'])
-        scheduler = lr_scheduler.StepLR(optimizer, step_size=run.config['epochs']/4, gamma=0.5)
+        #scheduler = lr_scheduler.CosineAnnealingLR(optimizer,run.config['epochs'])
         criterion = torch.nn.CrossEntropyLoss()
         domain_criterion=torch.nn.BCEWithLogitsLoss()
         for i in range(run.config['epochs']):
